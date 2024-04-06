@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tls="http://www.mulesoft.org/schema/mule/tls" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd">
+	<tls:context name="TLS_Context" doc:name="TLS Context" doc:id="5a5696ad-cfdf-47cc-98be-5b6cb1eb3636" >
+		<tls:key-store type="jks" path="server-keystore.jks" keyPassword="Password" password="Password" />
+	</tls:context>
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="6826ab76-1be1-469a-a5bd-2ddcc95a8359" >
+		<http:listener-connection host="localhost" port="8082" tlsContext="TLS_Context" protocol="HTTPS"/>
+	</http:listener-config>
+	<http:listener-config name="HTTP_Listener_config1" doc:name="HTTP Listener config" doc:id="6142c9a6-7312-4c23-9d78-f6044c21d5b3" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="8ca262fd-4830-447a-9593-3bf1cbd5a86e" >
+		<http:request-connection protocol="HTTPS" host="localhost" port="8082" >
+			<tls:context >
+				<tls:trust-store path="client-truststore.jks" password="Password" type="jks" insecure="true"/>
+			</tls:context>
+		</http:request-connection>
+	</http:request-config>
+	<flow name="Server-Flow-KeyStore" doc:id="345f6dd7-dba2-4261-8e95-76c7c0d31ee6" >
+		<http:listener doc:name="Listener" doc:id="5479bbd3-cbf6-4eb8-952b-e420a337d69e" path="/server-flow" config-ref="HTTP_Listener_config"/>
+		<logger level="INFO" doc:name="Logger" doc:id="acfba0d2-3ec4-4b73-80bf-0511d27cd0f0" message='#["Triggered the server Flow " ++ (flow.name as String)]'/>
+		<set-payload value='#["Successfully done with one way Secure Socket Layer"]' doc:name="Set Payload" doc:id="77825caf-95c8-4513-a688-381c2a177d1c" />
+		<ee:transform doc:name="Transform Message" doc:id="a92934c2-276c-4ec5-ad31-f446252b2ccf" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="Client-Flow-TrustStore" doc:id="984e5e94-bc34-4e57-9e9c-911e2dff7941" >
+		<http:listener doc:name="Listener" doc:id="7b58617b-fdd0-4aa9-8de4-57b6d3de7dfa" config-ref="HTTP_Listener_config1" path="/client-flow"/>
+		<logger level="INFO" doc:name="Logger" doc:id="ee819e22-0af7-4ee7-8cf2-556916c77d39" message='#["Triggered the client Flow " ++ (flow.name as String)]'/>
+		<http:request method="GET" doc:name="Request" doc:id="1677b0a0-80bf-4723-85bf-35863dcaa85e" config-ref="HTTP_Request_configuration" path="/server-flow"/>
+		<ee:transform doc:name="Transform Message" doc:id="b6fc4edb-ea9a-4f8b-8d32-397253a79c63" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+attributes ++ {"payload" : payload}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>
